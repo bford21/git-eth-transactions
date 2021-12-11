@@ -2,7 +2,6 @@
 
 Generates a git commit style visualization but for ethereum transactions
 
-
 ## Getting Started
 
 ```bash
