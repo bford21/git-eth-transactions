@@ -201,19 +201,19 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
                 <p className="mb-1">Address:</p>
                 <p>{ellipseAddress(address)}</p>
               </div>
-              <div>
-                {web3Provider ? (
-                  <button className="button" type="button" onClick={disconnect}>
-                    Disconnect
-                  </button>
-                ) : (
-                  <button className="button" type="button" onClick={connect}>
-                    Connect
-                  </button>
-                )}
-              </div>
             </div>
           )}
+          <div>
+            {web3Provider ? (
+              <button className="button" type="button" onClick={disconnect}>
+                Disconnect
+              </button>
+            ) : (
+              <button className="button" type="button" onClick={connect}>
+                Connect
+              </button>
+            )}
+          </div>
         </header>
 
         <h1 className={styles.title}>
@@ -222,6 +222,16 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
             Git Eth Transactions!
           </a>
         </h1>
+
+        {/* {web3Provider ? (
+                  <button className="button" type="button" onClick={disconnect}>
+                    Disconnect
+                  </button>
+                ) : (
+                  <button className="button" type="button" onClick={connect}>
+                    Connect
+                  </button>
+                )} */}
 
         <div className={styles.heatmap_container}>
           <CalendarHeatmap
