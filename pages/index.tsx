@@ -2,22 +2,18 @@ import WalletConnectProvider from '@walletconnect/web3-provider'
 import { providers } from 'ethers'
 import Head from 'next/head'
 import { useCallback, useEffect, useReducer } from 'react'
-import WalletLink from 'walletlink'
 import Web3Modal from 'web3modal'
 import { ellipseAddress, getChainData } from '../lib/utilities'
-import type { NextPage } from 'next'
 import React from 'react'
 import styles from '../styles/Home.module.css'
-import CalendarHeatmap from 'react-calendar-heatmap';
-import 'react-calendar-heatmap/dist/styles.css';
-
-const INFURA_ID = '460f40a260564ac4a4f4b3fffb032dad'
+import CalendarHeatmap from 'react-calendar-heatmap'
+import 'react-calendar-heatmap/dist/styles.css'
 
 const providerOptions = {
   walletconnect: {
     package: WalletConnectProvider, // required
     options: {
-      infuraId: INFURA_ID, // required
+      infuraId: process.env.INFURA_ID, // required
     },
   },
 }
@@ -92,7 +88,7 @@ function reducer(state: StateType, action: ActionType): StateType {
   }
 }
 
-export const Home = ({txCount, heatmap}): JSX.Element => {
+export const Home = ({ txCount, heatmap }): JSX.Element => {
   const [state, dispatch] = useReducer(reducer, initialState)
   const { provider, web3Provider, address, chainId } = state
 
@@ -186,7 +182,10 @@ export const Home = ({txCount, heatmap}): JSX.Element => {
     <div className={styles.container}>
       <Head>
         <title>Git Eth Transactions</title>
-        <meta name="description" content="visualize ethereum transaction activity via git style heatmap" />
+        <meta
+          name="description"
+          content="visualize ethereum transaction activity via git style heatmap"
+        />
         <link rel="icon" href="/favicon.ico" />
       </Head>
 
@@ -203,34 +202,37 @@ export const Home = ({txCount, heatmap}): JSX.Element => {
                 <p>{ellipseAddress(address)}</p>
               </div>
               <div>
-              {web3Provider ? (
-                <button className="button" type="button" onClick={disconnect}>
-                  Disconnect
-                </button>
-              ) : (
-                <button className="button" type="button" onClick={connect}>
-                  Connect
-                </button>
-              )}
+                {web3Provider ? (
+                  <button className="button" type="button" onClick={disconnect}>
+                    Disconnect
+                  </button>
+                ) : (
+                  <button className="button" type="button" onClick={connect}>
+                    Connect
+                  </button>
+                )}
               </div>
             </div>
           )}
         </header>
 
         <h1 className={styles.title}>
-          Welcome to <a target="_blank" href="">Git Eth Transactions!</a>
+          Welcome to{' '}
+          <a target="_blank" href="">
+            Git Eth Transactions!
+          </a>
         </h1>
 
-          <div className={styles.heatmap_container}>
-              <CalendarHeatmap
-                  startDate={new Date('2020-12-31')}
-                  endDate={new Date('2021-12-31')}
-                  values={heatmap}
-              />
-          </div>
+        <div className={styles.heatmap_container}>
+          <CalendarHeatmap
+            startDate={new Date('2020-12-31')}
+            endDate={new Date('2021-12-31')}
+            values={heatmap}
+          />
+        </div>
 
-          <h1 className={styles.description}>2021 Report Card</h1>
-          <h3 className={styles.description}>Transactions in 2021: { txCount }</h3>
+        <h1 className={styles.description}>2021 Report Card</h1>
+        <h3 className={styles.description}>Transactions in 2021: {txCount}</h3>
       </main>
 
       <style jsx>{`
@@ -293,47 +295,48 @@ export const Home = ({txCount, heatmap}): JSX.Element => {
 export default Home
 
 export async function getServerSideProps() {
-  const startBlock=11565019
-  const endBlock=99999999
-  const address="0xe644be3a05ed983cC18f5c1769fc1A38917ED030"
+  const startBlock = 11565019
+  const endBlock = 99999999
+  const address = '0xe644be3a05ed983cC18f5c1769fc1A38917ED030'
 
   // get transactions
-  const res = await fetch(`https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.ETHERSCAN_API_KEY}`)
+  const res = await fetch(
+    `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.ETHERSCAN_API_KEY}`
+  )
   const data = await res.json()
 
   if (!data) {
-      return {
-          notFound: true,
-      }
+    return {
+      notFound: true,
+    }
   }
 
-  let txs = data.result
-  let txCount = data.result.length
+  const txs = data.result
+  const txCount = data.result.length
 
   // get all dates there was a transaction
-  let timestamps: any[] = []
+  const timestamps: any[] = []
   txs.forEach((tx: any) => {
-      let epoch = new Date(tx.timeStamp*1000)
-      var year = epoch.getFullYear();
-      var month = epoch.getMonth();
-      var day = epoch.getDate();
-      var date = year + '-' + month + '-' + day;
-      timestamps.push(date)
-  });
+    const epoch = new Date(tx.timeStamp * 1000)
+    const year = epoch.getFullYear()
+    const month = epoch.getMonth()
+    const day = epoch.getDate()
+    const date = year + '-' + month + '-' + day
+    timestamps.push(date)
+  })
 
   // strip dupes
-  var unique_timestamps = [... new Set(timestamps)]
-  console.log(unique_timestamps);
+  const unique_timestamps = [...new Set(timestamps)]
 
-  var heatmap: { date: any; count: number; }[] = []
-  unique_timestamps.forEach(timestamp => {
-      heatmap.push({date: timestamp, count: 1})
+  const heatmap: { date: any; count: number }[] = []
+  unique_timestamps.forEach((timestamp) => {
+    heatmap.push({ date: timestamp, count: 1 })
   })
 
   return {
-      props: {
-          txCount,
-          heatmap
-      },
+    props: {
+      txCount,
+      heatmap,
+    },
   }
 }
