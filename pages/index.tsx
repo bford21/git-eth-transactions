@@ -13,7 +13,7 @@ const providerOptions = {
   walletconnect: {
     package: WalletConnectProvider, // required
     options: {
-      infuraId: process.env.INFURA_ID, // required
+      infuraId: process.env.NEXT_PUBLIC_INFURA_ID, // required
     },
   },
 }
@@ -27,11 +27,20 @@ if (typeof window !== 'undefined') {
   })
 }
 
+type ReportCard = {
+  totalTxs?: number,
+  totalFees?: number,
+  bestFriend?: string,
+  uniqueChains?: number
+}
+
 type StateType = {
   provider?: any
   web3Provider?: any
   address?: string
   chainId?: number
+  heatmap?: {ethereum: { date: any; count: number }[], polygon: { date: any; count: number }[], arbitrum: { date: any; count: number }[], optimism: { date: any; count: number }[]}
+  reportCard?: ReportCard
 }
 
 type ActionType =
@@ -41,10 +50,14 @@ type ActionType =
       web3Provider?: StateType['web3Provider']
       address?: StateType['address']
       chainId?: StateType['chainId']
+      heatmap?: StateType['heatmap']
+      reportCard?: StateType['reportCard']
     }
   | {
       type: 'SET_ADDRESS'
       address?: StateType['address']
+      heatmap?: StateType['heatmap']
+      reportCard?: StateType['reportCard']
     }
   | {
       type: 'SET_CHAIN_ID'
@@ -59,6 +72,8 @@ const initialState: StateType = {
   web3Provider: null,
   address: null,
   chainId: null,
+  heatmap: {ethereum: [], polygon: [], arbitrum: [], optimism: []},
+  reportCard: null
 }
 
 function reducer(state: StateType, action: ActionType): StateType {
@@ -70,11 +85,15 @@ function reducer(state: StateType, action: ActionType): StateType {
         web3Provider: action.web3Provider,
         address: action.address,
         chainId: action.chainId,
+        heatmap: action.heatmap,
+        reportCard: action.reportCard
       }
     case 'SET_ADDRESS':
       return {
         ...state,
         address: action.address,
+        heatmap: action.heatmap,
+        reportCard: action.reportCard
       }
     case 'SET_CHAIN_ID':
       return {
@@ -88,9 +107,130 @@ function reducer(state: StateType, action: ActionType): StateType {
   }
 }
 
-export const Home = ({ txCount, heatmap }): JSX.Element => {
+function generateReportCard(txs, heatmap) {
+  const report: ReportCard = {
+  bestFriend: "hio"
+  }
+  console.log(report)
+  return report
+}
+
+// TODO: Refactor to be more reusable
+function getHeatmapData(txs) {
+  const heatmap: {ethereum: { date: any; count: number }[], polygon: { date: any; count: number }[], arbitrum: { date: any; count: number }[], optimism: { date: any; count: number }[]} = {ethereum: [], polygon: [], arbitrum: [], optimism: []}
+
+  // ethereum transactions 
+  if(txs.ethereum.length > 0) {
+    let timestamps: any[] = []
+    txs.ethereum.forEach((tx: any) => {
+      const epoch = new Date(tx.timeStamp * 1000)
+      const year = epoch.getFullYear()
+      const month = epoch.getMonth()
+      const day = epoch.getDate()
+      const date = year + '-' + month + '-' + day
+      timestamps.push(date)
+    })
+    let unique_timestamps = [...new Set(timestamps)] // strip dupes
+    unique_timestamps.forEach((timestamp) => {
+      heatmap.ethereum.push({ date: timestamp, count: 1 })
+    })
+  }
+
+  // polygon transactions 
+  if(txs.polygon.length > 0) {
+    let timestamps: any[] = []
+    txs.polygon.forEach((tx: any) => {
+      const epoch = new Date(tx.timeStamp * 1000)
+      const year = epoch.getFullYear()
+      const month = epoch.getMonth()
+      const day = epoch.getDate()
+      const date = year + '-' + month + '-' + day
+      timestamps.push(date)
+    })
+    let unique_timestamps = [...new Set(timestamps)] // strip dupes
+    unique_timestamps.forEach((timestamp) => {
+      heatmap.polygon.push({ date: timestamp, count: 1 })
+    })
+  }
+
+  // arbitrum transactions 
+  if(txs.arbitrum && txs.arbitrum.length > 0) {
+    let timestamps: any[] = []
+    txs.arbitrum.forEach((tx: any) => {
+      const epoch = new Date(tx.timeStamp * 1000)
+      const year = epoch.getFullYear()
+      const month = epoch.getMonth()
+      const day = epoch.getDate()
+      const date = year + '-' + month + '-' + day
+      timestamps.push(date)
+    })
+    let unique_timestamps = [...new Set(timestamps)] // strip dupes
+    unique_timestamps.forEach((timestamp) => {
+      heatmap.arbitrum.push({ date: timestamp, count: 1 })
+    })
+  }
+
+  // arbitrum transactions 
+  if(txs.optimism && txs.optimism.length > 0) {
+    let timestamps: any[] = []
+    txs.optimism.forEach((tx: any) => {
+      const epoch = new Date(tx.timeStamp * 1000)
+      const year = epoch.getFullYear()
+      const month = epoch.getMonth()
+      const day = epoch.getDate()
+      const date = year + '-' + month + '-' + day
+      timestamps.push(date)
+    })
+    let unique_timestamps = [...new Set(timestamps)] // strip dupes
+    unique_timestamps.forEach((timestamp) => {
+      heatmap.optimism.push({ date: timestamp, count: 1 })
+    })
+  }
+  
+
+  return heatmap
+}
+
+async function getTransactions(address) {
+  const startBlock = 11565019 // Jan-01-2021 12:00:00 AM +UTC
+  const endBlock = 99999999
+  let txs = {ethereum: null, polygon: null, arbitrum: null, optimism: null}
+
+  // ethereum txs
+  // TODO: better logging/error handling
+  const ethRes = await fetch(
+    `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.NEXT_PUBLIC_ETHERSCAN_API_KEY}`
+  )
+  const data = await ethRes.json()
+  txs.ethereum = data.result
+  
+  // polygon txs
+  const polyRes = await fetch(
+    `https://api.polygonscan.com/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.NEXT_PUBLIC_POLYGONSCAN_API_KEY}`
+  )
+  const data2 = await polyRes.json()
+  txs.polygon = data2.result
+
+  // arbitrum txs
+  const arbRes = await fetch(
+    `https://api.arbiscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.NEXT_PUBLIC_ARBISCAN_API_KEY}`
+  )
+  const data3 = arbRes
+  txs.arbitrum = data3
+
+  // // optimism txs
+  const opRes = await fetch(
+    `https://api-optimistic.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.NEXT_PUBLIC_OPTIMISM_API_KEY}`
+  )
+  const data4 = await opRes.json()
+  txs.optimism = data4.result
+
+  return txs
+}
+
+export const Home = (): JSX.Element => {
   const [state, dispatch] = useReducer(reducer, initialState)
-  const { provider, web3Provider, address, chainId } = state
+  const { provider, web3Provider, address, chainId, heatmap, reportCard } = state
 
   const connect = useCallback(async function () {
     // This is the initial `provider` that is returned when
@@ -107,12 +247,18 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
 
     const network = await web3Provider.getNetwork()
 
+    const txs = await getTransactions(address);
+    const heatmap = getHeatmapData(txs);
+    const reportCard = generateReportCard(txs, heatmap);
+
     dispatch({
       type: 'SET_WEB3_PROVIDER',
       provider,
       web3Provider,
       address,
       chainId: network.chainId,
+      heatmap,
+      reportCard,
     })
   }, [])
 
@@ -141,12 +287,19 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
   // local React state with that new information.
   useEffect(() => {
     if (provider?.on) {
-      const handleAccountsChanged = (accounts: string[]) => {
+      const handleAccountsChanged = async (accounts: string[]) => {
         // eslint-disable-next-line no-console
         console.log('accountsChanged', accounts)
+
+        const txs = await getTransactions(accounts[0]);
+        const heatmap = getHeatmapData(txs);
+        const reportCard = generateReportCard(txs, heatmap);
+
         dispatch({
           type: 'SET_ADDRESS',
           address: accounts[0],
+          heatmap: heatmap,
+          reportCard: reportCard
         })
       }
 
@@ -203,17 +356,6 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
               </div>
             </div>
           )}
-          <div>
-            {web3Provider ? (
-              <button className="button" type="button" onClick={disconnect}>
-                Disconnect
-              </button>
-            ) : (
-              <button className="button" type="button" onClick={connect}>
-                Connect
-              </button>
-            )}
-          </div>
         </header>
 
         <h1 className={styles.title}>
@@ -223,130 +365,60 @@ export const Home = ({ txCount, heatmap }): JSX.Element => {
           </a>
         </h1>
 
-        {/* {web3Provider ? (
-                  <button className="button" type="button" onClick={disconnect}>
-                    Disconnect
-                  </button>
-                ) : (
-                  <button className="button" type="button" onClick={connect}>
-                    Connect
-                  </button>
-                )} */}
-
+        {web3Provider ? (
+          <button className="button" type="button" onClick={disconnect}>
+            Disconnect
+          </button>
+        ) : (
+          <button className="button" type="button" onClick={connect}>
+            Connect
+          </button>
+        )}
+        <h3>Ethereum</h3>
         <div className={styles.heatmap_container}>
           <CalendarHeatmap
             startDate={new Date('2020-12-31')}
             endDate={new Date('2021-12-31')}
-            values={heatmap}
+            values={heatmap.ethereum}
+          />
+        </div>
+
+        <h3>Polygon</h3>
+        <div className={styles.heatmap_container}>
+          <CalendarHeatmap
+            startDate={new Date('2020-12-31')}
+            endDate={new Date('2021-12-31')}
+            values={heatmap.polygon}
+          />
+        </div>
+
+        <h3>Arbitrum</h3>
+        <div className={styles.heatmap_container}>
+          <CalendarHeatmap
+            startDate={new Date('2020-12-31')}
+            endDate={new Date('2021-12-31')}
+            values={heatmap.arbitrum}
+          />
+        </div>
+
+        <h3>Optimism</h3>
+        <div className={styles.heatmap_container}>
+          <CalendarHeatmap
+            startDate={new Date('2020-12-31')}
+            endDate={new Date('2021-12-31')}
+            values={heatmap.optimism}
           />
         </div>
 
         <h1 className={styles.description}>2021 Report Card</h1>
-        <h3 className={styles.description}>Transactions in 2021: {txCount}</h3>
+        <h3 className={styles.description}>Transactions in 2021: </h3>
+        <h3 className={styles.description}>Fees: </h3>
+        <h3 className={styles.description}>Best Friend: {reportCard.bestFriend}</h3>
+
       </main>
 
-      <style jsx>{`
-        main {
-          padding: 5rem 0;
-          text-align: center;
-        }
-
-        p {
-          margin-top: 0;
-        }
-
-        .container {
-          padding: 2rem;
-          margin: 0 auto;
-          max-width: 1200px;
-        }
-
-        .grid {
-          display: grid;
-          grid-template-columns: auto auto;
-          justify-content: space-between;
-        }
-
-        .button {
-          padding: 1rem 1.5rem;
-          background: ${web3Provider ? 'red' : 'green'};
-          border: none;
-          border-radius: 0.5rem;
-          color: #fff;
-          font-size: 1.2rem;
-        }
-
-        .mb-0 {
-          margin-bottom: 0;
-        }
-        .mb-1 {
-          margin-bottom: 0.25rem;
-        }
-      `}</style>
-
-      <style jsx global>{`
-        html,
-        body {
-          padding: 0;
-          margin: 0;
-          font-family: -apple-system, BlinkMacSystemFont, Segoe UI, Roboto,
-            Oxygen, Ubuntu, Cantarell, Fira Sans, Droid Sans, Helvetica Neue,
-            sans-serif;
-        }
-
-        * {
-          box-sizing: border-box;
-        }
-      `}</style>
-    </div>
+      </div>
   )
 }
 
 export default Home
-
-export async function getServerSideProps() {
-  const startBlock = 11565019
-  const endBlock = 99999999
-  const address = '0xe644be3a05ed983cC18f5c1769fc1A38917ED030'
-
-  // get transactions
-  const res = await fetch(
-    `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=${startBlock}&endblock=${endBlock}&page=1&offset=10000&sort=asc&apikey=${process.env.ETHERSCAN_API_KEY}`
-  )
-  const data = await res.json()
-
-  if (!data) {
-    return {
-      notFound: true,
-    }
-  }
-
-  const txs = data.result
-  const txCount = data.result.length
-
-  // get all dates there was a transaction
-  const timestamps: any[] = []
-  txs.forEach((tx: any) => {
-    const epoch = new Date(tx.timeStamp * 1000)
-    const year = epoch.getFullYear()
-    const month = epoch.getMonth()
-    const day = epoch.getDate()
-    const date = year + '-' + month + '-' + day
-    timestamps.push(date)
-  })
-
-  // strip dupes
-  const unique_timestamps = [...new Set(timestamps)]
-
-  const heatmap: { date: any; count: number }[] = []
-  unique_timestamps.forEach((timestamp) => {
-    heatmap.push({ date: timestamp, count: 1 })
-  })
-
-  return {
-    props: {
-      txCount,
-      heatmap,
-    },
-  }
-}
