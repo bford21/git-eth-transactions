@@ -27,11 +27,17 @@ if (typeof window !== 'undefined') {
   })
 }
 
-type ReportCard = {
+type ChainReport = {
   totalTxs?: number,
-  totalFees?: number,
+  fees?: number,
   bestFriend?: string,
-  uniqueChains?: number
+}
+
+type ReportCard = {
+  ethereum: ChainReport,
+  polygon: ChainReport,
+  arbitrum: ChainReport,
+  optimism: ChainReport,
 }
 
 type StateType = {
@@ -107,11 +113,27 @@ function reducer(state: StateType, action: ActionType): StateType {
   }
 }
 
-function generateReportCard(txs, heatmap) {
-  const report: ReportCard = {
-  bestFriend: "hio"
+function generateReportCard(txs) {
+  console.log(txs)
+  // TODO Clean this garbage up
+  let report: ReportCard = {
+    ethereum: {totalTxs: 0, fees: 0, bestFriend: ""},
+    polygon: {totalTxs: 0, fees: 0, bestFriend: ""},
+    arbitrum: {totalTxs: 0, fees: 0, bestFriend: ""},
+    optimism: {totalTxs: 0, fees: 0, bestFriend: ""},
   }
-  console.log(report)
+
+  txs.ethereum.forEach((tx) => {
+    report.ethereum.totalTxs++;
+    report.ethereum.fees = report.ethereum.fees + ((tx.gasPrice * tx.gasUsed)/10**18)
+  });
+
+  txs.polygon.forEach((tx) => {
+    report.polygon.totalTxs++;
+    report.polygon.fees = report.polygon.fees + ((tx.gasPrice * tx.gasUsed)/10**18)
+  });
+
+  console.log(report);
   return report
 }
 
@@ -132,7 +154,7 @@ function getHeatmapData(txs) {
     })
     let unique_timestamps = [...new Set(timestamps)] // strip dupes
     unique_timestamps.forEach((timestamp) => {
-      heatmap.ethereum.push({ date: timestamp, count: 1 })
+      heatmap.ethereum.push({ date: timestamp, count: 100 })
     })
   }
 
@@ -249,7 +271,7 @@ export const Home = (): JSX.Element => {
 
     const txs = await getTransactions(address);
     const heatmap = getHeatmapData(txs);
-    const reportCard = generateReportCard(txs, heatmap);
+    const reportCard = generateReportCard(txs);
 
     dispatch({
       type: 'SET_WEB3_PROVIDER',
@@ -293,7 +315,7 @@ export const Home = (): JSX.Element => {
 
         const txs = await getTransactions(accounts[0]);
         const heatmap = getHeatmapData(txs);
-        const reportCard = generateReportCard(txs, heatmap);
+        const reportCard = generateReportCard(txs);
 
         dispatch({
           type: 'SET_ADDRESS',
@@ -374,6 +396,7 @@ export const Home = (): JSX.Element => {
             Connect
           </button>
         )}
+
         <h3>Ethereum</h3>
         <div className={styles.heatmap_container}>
           <CalendarHeatmap
@@ -392,7 +415,7 @@ export const Home = (): JSX.Element => {
           />
         </div>
 
-        <h3>Arbitrum</h3>
+        {/* <h3>Arbitrum</h3>
         <div className={styles.heatmap_container}>
           <CalendarHeatmap
             startDate={new Date('2020-12-31')}
@@ -408,12 +431,26 @@ export const Home = (): JSX.Element => {
             endDate={new Date('2021-12-31')}
             values={heatmap.optimism}
           />
-        </div>
+        </div> */}
 
-        <h1 className={styles.description}>2021 Report Card</h1>
-        <h3 className={styles.description}>Transactions in 2021: </h3>
-        <h3 className={styles.description}>Fees: </h3>
-        <h3 className={styles.description}>Best Friend: {reportCard.bestFriend}</h3>
+        <h1 className={styles.title}>2021 Report Card</h1>
+        <h3 className={styles.description}>Transactions:</h3>
+          <p>Ethereum: {reportCard?.ethereum?.totalTxs}</p>
+          <p>Polygon: {reportCard?.polygon?.totalTxs}</p>
+          <p>Arbitrum: {reportCard?.arbitrum?.totalTxs}</p>
+          <p>Optimism: {reportCard?.optimism?.totalTxs}</p>
+          <p>Total: {reportCard?.ethereum?.totalTxs + reportCard?.polygon?.totalTxs + reportCard?.arbitrum?.totalTxs + reportCard?.optimism?.totalTxs}</p>
+
+        <h3 className={styles.description}>Fees:</h3>
+          <p>Ethereum: {reportCard?.ethereum?.fees} ETH</p>
+          <p>Polygon: {reportCard?.polygon?.fees} MATIC</p>
+          <p>Arbitrum: {reportCard?.arbitrum?.fees} ETH</p>
+          <p>Optimism: {reportCard?.optimism?.fees} ETH</p>
+          <p>Totals:</p>
+          <p>{reportCard?.ethereum?.fees + reportCard?.optimism?.fees + reportCard?.polygon?.fees} ETH</p>
+          <p>Polygon: {reportCard?.polygon?.fees} MATIC</p>
+
+        <h3 className={styles.description}>Best Friend: {reportCard?.ethereum.bestFriend}</h3>
 
       </main>
 
