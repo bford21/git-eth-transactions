@@ -152,9 +152,28 @@ function getHeatmapData(txs) {
       const date = year + '-' + month + '-' + day
       timestamps.push(date)
     })
+    console.log('Hey', timestamps)
+
+
+    let map = {};
+    for(let i = 0; i < timestamps.length; i++) {
+      // check if object contains entry with this element as key
+      if(map[timestamps[i]]) {
+          map[timestamps[i]] = (map[timestamps[i]] + 1)
+      } else{
+        // add entry in object with the element as key
+        map[timestamps[i]] = 1;
+      }
+    }
+
+    console.log('Array contains duplicate elements', map);
+    
+
     let unique_timestamps = [...new Set(timestamps)] // strip dupes
+    
     unique_timestamps.forEach((timestamp) => {
-      heatmap.ethereum.push({ date: timestamp, count: 100 })
+      const random = Math.floor(Math.random() * 5);
+      heatmap.ethereum.push({ date: timestamp, count: random })
     })
   }
 
@@ -209,7 +228,7 @@ function getHeatmapData(txs) {
     })
   }
   
-
+  console.log(heatmap)
   return heatmap
 }
 
@@ -400,9 +419,21 @@ export const Home = (): JSX.Element => {
         <h3>Ethereum</h3>
         <div className={styles.heatmap_container}>
           <CalendarHeatmap
+            showWeekdayLabels={true}
+            showOutOfRangeDays={true}
+            gutterSize={3}
             startDate={new Date('2020-12-31')}
             endDate={new Date('2021-12-31')}
             values={heatmap.ethereum}
+            onMouseOver={(event, value) => {
+              if (value){console.log(value)}
+            }}
+            classForValue={(value) => {
+              if (!value) {
+                return 'color-empty';
+              }
+              return `color-scale-${value.count}`;
+            }}
           />
         </div>
 
@@ -447,7 +478,7 @@ export const Home = (): JSX.Element => {
           <p>Arbitrum: {reportCard?.arbitrum?.fees} ETH</p>
           <p>Optimism: {reportCard?.optimism?.fees} ETH</p>
           <p>Totals:</p>
-          <p>{reportCard?.ethereum?.fees + reportCard?.optimism?.fees + reportCard?.polygon?.fees} ETH</p>
+          <p>{reportCard?.ethereum?.fees + reportCard?.optimism?.fees + reportCard?.arbitrum?.fees} ETH</p>
           <p>Polygon: {reportCard?.polygon?.fees} MATIC</p>
 
         <h3 className={styles.description}>Best Friend: {reportCard?.ethereum.bestFriend}</h3>
